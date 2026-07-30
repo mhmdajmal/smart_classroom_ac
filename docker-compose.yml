@@ -16,12 +16,19 @@ services:
       - ENV=production
       - HOST=0.0.0.0
       - PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/dashboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
     container_name: smart_classroom_frontend
     ports:
       - "3000:3000"

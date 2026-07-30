@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /app
 
 # Install system dependencies required for OpenCV
@@ -15,6 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Create runtime directories for uploads and logs
+RUN mkdir -p /app/uploads /app/logs
 
 COPY backend /app/backend
 COPY models /app/models
