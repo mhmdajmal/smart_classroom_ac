@@ -61,19 +61,6 @@ class Settings(BaseSettings):
 
         return self.ROOT_DIR / "models" / "keras_model.h5"
 
-    def get_best_pt_path(self) -> Path:
-        """Resolve full YOLO best.pt model file path."""
-        candidates = [
-            self.ROOT_DIR / "models" / "best.pt",
-            self.ROOT_DIR / "best.pt",
-            self.ROOT_DIR / "models" / "keras_model.h5",
-            self.ROOT_DIR / "keras_model.h5",
-        ]
-        for cand in candidates:
-            if cand.exists():
-                return cand
-        return self.ROOT_DIR / "models" / "best.pt"
-
     def get_labels_path(self) -> Path:
         """Resolve full labels file path."""
         p = Path(self.LABELS_PATH)

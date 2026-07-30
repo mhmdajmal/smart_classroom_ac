@@ -223,7 +223,6 @@ class VideoProcessorService:
                 pred_label = res.get("predicted_label", "Low Occupancy")
                 
                 annotated_frame = raw_frame.copy()
-                tflite_service.draw_human_boxes(annotated_frame, getattr(tflite_service, "_last_detections", []))
                 tflite_service._draw_hud_overlay(
                     annotated_frame,
                     predicted_label=pred_label,
@@ -350,7 +349,7 @@ class VideoProcessorService:
                 "cpu_usage_percent": cpu_usage,
                 "memory_usage_percent": memory.percent,
                 "memory_used_mb": round(memory.used / (1024 * 1024), 1),
-                "model_name": "Teachable Machine TFLite + Human Bounding Boxes",
+                "model_name": "Teachable Machine Edge AI Classifier",
                 "device": "Local Edge Device",
                 "mode": "Offline Local Inference"
             }
