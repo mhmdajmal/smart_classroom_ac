@@ -182,7 +182,8 @@ class VideoProcessorService:
             self.is_processing = False
             return
 
-        native_fps = 25.0
+        cap_fps = float(cap.get(cv2.CAP_PROP_FPS))
+        native_fps = cap_fps if (cap_fps > 0 and cap_fps < 120) else (self.fps if self.fps > 0 else 25.0)
         frame_interval = 1.0 / native_fps
 
         frame_num = 0
@@ -320,7 +321,8 @@ class VideoProcessorService:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
-            time.sleep(0.01)  # Real-time stream refresh
+            stream_delay = 1.0 / (self.fps if self.fps > 0 else 25.0)
+            time.sleep(stream_delay)  # Native video FPS stream refresh
 
     def get_dashboard_state(self) -> Dict[str, Any]:
         """Return structured dashboard telemetry payload."""
