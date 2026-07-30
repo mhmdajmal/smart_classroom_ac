@@ -171,13 +171,17 @@ class TeachableMachineService:
             raw_state = "MEDIUM"
 
         now_time = time.time()
-        # Immediate LOW transition + 2.0s transition hold gap
+        # Immediate LOW transition (2.0s hold gap), HIGH occupancy transition (3.0s hold gap)
         if raw_state == "LOW":
             self.smoothed_occupancy = "LOW"
-            self.state_hold_until = now_time + 2.0  # 2.0s gap before allowing status change
+            self.state_hold_until = now_time + 2.0  # 2.0s hold gap for LOW occupancy
+        elif raw_state == "HIGH":
+            if now_time >= self.state_hold_until:
+                self.smoothed_occupancy = "HIGH"
+                self.state_hold_until = now_time + 3.0  # 3.0s hold gap for HIGH occupancy
         else:
             if now_time >= self.state_hold_until:
-                self.smoothed_occupancy = raw_state
+                self.smoothed_occupancy = "MEDIUM"
 
         occupancy_level = self.smoothed_occupancy
 
