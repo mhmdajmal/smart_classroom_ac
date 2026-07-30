@@ -33,10 +33,9 @@ class TeachableMachineService:
         self.model_path = settings.get_model_path()
         self.labels_path = settings.get_labels_path()
         
-        # Sliding window smoothing & hysteresis buffers (0.15s - 0.2s window)
-        self.prob_history = deque(maxlen=7)
-        self.state_history = deque(maxlen=5)
+        # Occupancy state smoothing: Immediate LOW transition + 1.5s change gap
         self.smoothed_occupancy = "LOW"
+        self.state_hold_until = 0.0
 
         self._load_labels()
         self._load_model()
@@ -160,44 +159,35 @@ class TeachableMachineService:
         else:
             output_data = np.array(preds)[0]
 
-        # 2. Sliding Window Probability Averaging (7 frames ~0.25s)
-        self.prob_history.append(output_data)
-        avg_probs = np.mean(self.prob_history, axis=0)
-
-        pred_idx = int(np.argmax(avg_probs))
-        confidence = float(avg_probs[pred_idx])
+        pred_idx = int(np.argmax(output_data))
+        confidence = float(output_data[pred_idx])
 
         predicted_label = self.labels[pred_idx] if pred_idx < len(self.labels) else f"Class {pred_idx}"
 
-        # Determine raw occupancy category from smoothed probabilities
         raw_state = "LOW"
         if "high" in predicted_label.lower():
             raw_state = "HIGH"
         elif "middle" in predicted_label.lower() or "medium" in predicted_label.lower():
             raw_state = "MEDIUM"
 
-        # State Transition Hysteresis (Require 3 consecutive matching votes to transition)
-        self.state_history.append(raw_state)
-        recent_states = list(self.state_history)
-        if len(recent_states) >= 3 and all(s == raw_state for s in recent_states[-3:]):
-            self.smoothed_occupancy = raw_state
+        now_time = time.time()
+        # Immediate LOW transition + 1.2s transition hold gap
+        if raw_state == "LOW":
+            self.smoothed_occupancy = "LOW"
+            self.state_hold_until = now_time + 1.2  # 1.2s gap before allowing status change
+        else:
+            if now_time >= self.state_hold_until:
+                self.smoothed_occupancy = raw_state
 
         occupancy_level = self.smoothed_occupancy
 
-        # Continuous, Realistic People Count Mapping matching thresholds (LOW <=2, MEDIUM <=9, HIGH >=10)
-        prob_low = float(avg_probs[0]) if len(avg_probs) > 0 else 0.0
-        prob_med = float(avg_probs[1]) if len(avg_probs) > 1 else 0.0
-        prob_high = float(avg_probs[2]) if len(avg_probs) > 2 else 0.0
-
+        # Standard clean headcount mapping per occupancy level
         if occupancy_level == "LOW":
-            people_count = int(round(prob_low * 1.5 + prob_med * 2.0))
-            people_count = max(1, min(2, people_count))
+            people_count = 1
         elif occupancy_level == "MEDIUM":
-            people_count = int(round(prob_low * 2.5 + prob_med * 5.5 + prob_high * 8.5))
-            people_count = max(3, min(9, people_count))
+            people_count = 5
         else:
-            people_count = int(round(prob_med * 8.5 + prob_high * 12.5))
-            people_count = max(10, people_count)
+            people_count = 12
 
         end_time = time.perf_counter()
         proc_time_ms = (end_time - start_time) * 1000.0
