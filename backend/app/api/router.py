@@ -78,7 +78,7 @@ async def trigger_prediction():
     if not video_processor.current_video_path:
         raise HTTPException(status_code=400, detail="No uploaded video found. Please upload a video first.")
 
-    success = video_processor.start_processing()
+    success = video_processor.start_processing(force=True)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to start video inference worker thread.")
 
@@ -99,11 +99,12 @@ async def control_processing(cmd: ControlCommand):
         video_processor.pause_processing()
         return {"message": "Processing paused"}
     elif command == "resume":
-        video_processor.resume_processing()
+        video_processor.start_processing(force=True)
         return {"message": "Processing resumed"}
     elif command == "stop":
         video_processor.stop_processing()
-        return {"message": "Processing stopped"}
+        video_processor.start_processing(force=True)
+        return {"message": "Processing restarted"}
     elif command == "remove":
         video_processor.remove_video()
         return {"message": "Video removed"}

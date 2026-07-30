@@ -24,6 +24,7 @@ class VideoProcessorService:
         self.is_processing = False
         self.is_paused = False
         self.should_stop = False
+        self.is_completed = False
         self.current_video_path: Optional[Path] = None
         self.current_filename: Optional[str] = None
         
@@ -55,7 +56,6 @@ class VideoProcessorService:
             target_video = all_mp4s[0]
             try:
                 self.set_video(target_video, target_video.name)
-                self.start_processing()
                 logger.info(f"Auto-loaded video stream: {target_video.name}")
             except Exception as e:
                 logger.warning(f"Could not auto-load sample video: {str(e)}")
@@ -88,10 +88,12 @@ class VideoProcessorService:
         self.latest_fps = 0.0
         self.latest_confidence = 0.0
         self.latest_proc_time = 0.0
+        self.latest_frame_encoded = None
+        self.is_completed = False
         logger.info(f"Video loaded: {filename} ({self.total_frames} frames, {self.resolution}, {self.fps:.1f} FPS)")
 
-        # Automatically start video processing worker for newly uploaded file
-        self.start_processing()
+        # Automatically start video processing worker for newly loaded video
+        self.start_processing(force=True)
 
         return {
             "filename": filename,
@@ -102,8 +104,15 @@ class VideoProcessorService:
             "resolution": self.resolution
         }
 
-    def start_processing(self):
+    def start_processing(self, force: bool = False):
         """Start asynchronous frame-by-frame processing worker thread."""
+        if force:
+            self.is_completed = False
+
+        if self.is_completed:
+            logger.info("Video playback already completed. Use restart/play to run again.")
+            return False
+
         if not self.current_video_path or not self.current_video_path.exists():
             all_mp4s = list(settings.ROOT_DIR.glob("*.mp4")) + list(settings.get_upload_dir().glob("*.mp4"))
             if all_mp4s:
@@ -127,6 +136,7 @@ class VideoProcessorService:
         self.is_processing = True
         self.is_paused = False
         self.should_stop = False
+        self.is_completed = False
         
         self._thread = threading.Thread(target=self._process_worker, daemon=True)
         self._thread.start()
@@ -197,6 +207,7 @@ class VideoProcessorService:
             if not ret:
                 logger.info("Reached end of video stream. Playback finished.")
                 self.is_processing = False
+                self.is_completed = True
                 break
 
             frame_num += 1
@@ -299,7 +310,7 @@ class VideoProcessorService:
 
     def get_live_frame(self) -> Generator[bytes, None, None]:
         """MJPEG generator for live HTTP streaming video endpoint."""
-        if not self.is_processing and self.current_video_path and self.current_video_path.exists():
+        if not self.is_processing and not self.is_completed and self.current_video_path and self.current_video_path.exists():
             self.start_processing()
 
         while True:
@@ -322,7 +333,7 @@ class VideoProcessorService:
 
     def get_dashboard_state(self) -> Dict[str, Any]:
         """Return structured dashboard telemetry payload."""
-        if not self.is_processing and self.current_video_path and self.current_video_path.exists():
+        if not self.is_processing and not self.is_completed and self.current_video_path and self.current_video_path.exists():
             self.start_processing()
 
         progress = (self.current_frame_idx / self.total_frames * 100.0) if self.total_frames > 0 else 0.0
