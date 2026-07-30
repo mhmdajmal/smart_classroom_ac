@@ -239,9 +239,14 @@ class TeachableMachineService:
         # Left indicator bar
         cv2.rectangle(frame, (0, 0), (10, banner_h), accent_color, -1)
 
-        text_color = (255, 255, 255)
+        if occupancy_level == "LOW":
+            count_label = "1 - 2 persons"
+        elif occupancy_level == "MEDIUM":
+            count_label = "3 - 10 persons"
+        else:
+            count_label = "More than 10 persons"
 
-        hud_1 = f"HUMANS: ~{people_count} ({occupancy_level})"
+        hud_1 = f"PRED: {count_label} ({occupancy_level})"
         hud_2 = f"CONF: {confidence:.1f}%"
         hud_3 = f"FPS: {fps:.1f}"
         hud_4 = f"FRAME: {frame_num}/{total_frames}"

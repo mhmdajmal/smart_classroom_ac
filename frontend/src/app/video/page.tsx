@@ -241,9 +241,11 @@ export default function VideoPage() {
               <div className="space-y-3 font-mono text-xs">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
                   <span className="text-gray-400 flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-blue-400" /> People Count
+                    <Users className="w-3.5 h-3.5 text-blue-400" /> People Count Prediction
                   </span>
-                  <span className="text-white font-bold text-sm">{dashboard?.people_count ?? 0}</span>
+                  <span className="text-white font-bold text-sm">
+                    {dashboard?.occupancy_level === 'HIGH' ? 'More than 10 persons' : dashboard?.occupancy_level === 'MEDIUM' ? '3 - 10 persons' : '1 - 2 persons'}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">

@@ -29,12 +29,24 @@ export default function Dashboard() {
     refetchInterval: 200,
   });
 
+  const getPeopleCountPrediction = (level?: string) => {
+    switch (level) {
+      case 'HIGH':
+        return 'More than 10 persons';
+      case 'MEDIUM':
+        return '3 - 10 persons';
+      case 'LOW':
+      default:
+        return '1 - 2 persons';
+    }
+  };
+
   const getOccupancyBadge = (level?: string) => {
     switch (level) {
       case 'LOW':
-        return { color: 'emerald', badge: 'LOW (0-2)', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+        return { color: 'emerald', badge: 'LOW (1-2)', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
       case 'MEDIUM':
-        return { color: 'amber', badge: 'MEDIUM (3-9)', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+        return { color: 'amber', badge: 'MEDIUM (3-10)', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
       case 'HIGH':
         return { color: 'rose', badge: 'HIGH (10+)', bg: 'bg-rose-500/20 text-rose-400 border-rose-500/30' };
       default:
@@ -43,6 +55,7 @@ export default function Dashboard() {
   };
 
   const occBadge = getOccupancyBadge(dashboard?.occupancy_level);
+  const countPrediction = getPeopleCountPrediction(dashboard?.occupancy_level);
 
   return (
     <div className="flex-1 flex flex-col min-h-screen">
@@ -52,12 +65,12 @@ export default function Dashboard() {
         {/* Primary Metric Grid Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            title="People Count"
-            value={dashboard?.people_count ?? 0}
-            subtitle="Detected Person Objects"
+            title="People Count Prediction"
+            value={countPrediction}
+            subtitle="Classroom Occupancy Range"
             icon={Users}
             color="blue"
-            badge={`${dashboard?.people_count ?? 0} Persons`}
+            badge={countPrediction}
           />
 
           <MetricCard
