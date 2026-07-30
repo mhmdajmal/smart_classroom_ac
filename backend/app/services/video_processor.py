@@ -95,6 +95,9 @@ class VideoProcessorService:
 
         logger.info(f"Video loaded: {filename} ({self.total_frames} frames, {self.resolution}, {self.fps:.1f} FPS)")
 
+        # Automatically start video processing worker for newly uploaded file
+        self.start_processing()
+
         return {
             "filename": filename,
             "file_path": str(file_path),
@@ -120,11 +123,10 @@ class VideoProcessorService:
                 logger.warning("No valid video loaded to process.")
                 return False
 
-        if self.is_processing:
+        if self.is_processing and self._thread and self._thread.is_alive():
             if self.is_paused:
                 self.is_paused = False
                 logger.info("Resumed video processing.")
-                return True
             return True
 
         self.is_processing = True
@@ -154,7 +156,8 @@ class VideoProcessorService:
         self.is_processing = False
         self.is_paused = False
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=3.0)
+        self._thread = None
         logger.info("Stopped video processing.")
 
     def remove_video(self):

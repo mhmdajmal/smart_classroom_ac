@@ -40,18 +40,20 @@ async def upload_video(file: UploadFile = File(...)):
             detail=f"Unsupported file format '{file_ext}'. Allowed formats: {', '.join(allowed_extensions)}"
         )
 
+    clean_filename = Path(file.filename).name.replace(" ", "_")
     upload_dir = settings.get_upload_dir()
-    save_path = upload_dir / file.filename
+    save_path = upload_dir / clean_filename
 
     try:
         with open(save_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
         file_size = save_path.stat().st_size
-        logger.info(f"Uploaded video saved: {file.filename} ({file_size} bytes)")
+        logger.info(f"Uploaded video saved: {clean_filename} ({file_size} bytes)")
 
-        # Load video into processor
-        metadata = video_processor.set_video(save_path, file.filename)
+        # Load video into processor and start worker thread
+        metadata = video_processor.set_video(save_path, clean_filename)
+        video_processor.start_processing()
 
         return VideoUploadResponse(
             message="Video uploaded successfully and loaded for Edge AI processing.",
