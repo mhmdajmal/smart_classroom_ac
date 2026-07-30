@@ -88,11 +88,6 @@ class VideoProcessorService:
         self.latest_fps = 0.0
         self.latest_confidence = 0.0
         self.latest_proc_time = 0.0
-        self.latest_frame_encoded = None
-        
-        ac_service.reset_stats()
-        statistics_service.clear()
-
         logger.info(f"Video loaded: {filename} ({self.total_frames} frames, {self.resolution}, {self.fps:.1f} FPS)")
 
         # Automatically start video processing worker for newly uploaded file
@@ -200,11 +195,9 @@ class VideoProcessorService:
 
             ret, raw_frame = cap.read()
             if not ret:
-                logger.info("Reached end of video stream. Looping back to frame 1...")
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                frame_num = 0
-                start_time = time.perf_counter()
-                continue
+                logger.info("Reached end of video stream. Playback finished.")
+                self.is_processing = False
+                break
 
             frame_num += 1
             self.current_frame_idx = frame_num
