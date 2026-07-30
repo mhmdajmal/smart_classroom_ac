@@ -33,9 +33,9 @@ class VideoProcessorService:
         self.video_duration = 0.0
         self.resolution = "0x0"
 
-        # Frame pacing control (Target 20 FPS for optimal Edge AI occupancy stability)
-        self.target_fps = 20.0
-        self.frame_delay = 1.0 / self.target_fps  # 0.05s delay per frame
+        # Frame pacing control (Target 60 FPS for smooth, fast video playback)
+        self.target_fps = 60.0
+        self.frame_delay = 1.0 / self.target_fps  # ~0.016s delay per frame
 
         self.latest_people_count = 0
         self.latest_occupancy = "LOW"
@@ -182,8 +182,9 @@ class VideoProcessorService:
             self.is_processing = False
             return
 
-        target_fps = 20.0
-        frame_interval = 1.0 / target_fps
+        cap_fps = float(cap.get(cv2.CAP_PROP_FPS))
+        native_fps = cap_fps if (cap_fps > 0 and cap_fps < 120) else (self.fps if self.fps > 0 else 25.0)
+        frame_interval = 1.0 / native_fps
 
         frame_num = 0
         start_time = time.perf_counter()
@@ -320,7 +321,8 @@ class VideoProcessorService:
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
-            time.sleep(1.0 / 20.0)  # Locked 20.0 FPS stream refresh
+            stream_delay = 1.0 / (self.fps if self.fps > 0 else 25.0)
+            time.sleep(stream_delay)  # Native video FPS stream refresh
 
     def get_dashboard_state(self) -> Dict[str, Any]:
         """Return structured dashboard telemetry payload."""
